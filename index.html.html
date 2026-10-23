@@ -1,0 +1,856 @@
+
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>دفتر البحث الجامعي</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --ink: #292929;
+  --paper: #ffffff;
+  --background: #eeece8;
+  --font: "Amiri", serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--ink);
+  font-family: var(--font);
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: #292929;
+  color: white;
+  padding: 12px;
+  display: flex;
+  gap: 9px;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  box-shadow: 0 3px 12px #0002;
+}
+
+button, select {
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #fff;
+  color: #292929;
+  padding: 8px 12px;
+  font: 16px var(--font);
+}
+
+button { cursor: pointer; }
+button:hover { background: #e7e7e7; }
+
+.color-control {
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  background: #fff;
+  color: #292929;
+  padding: 5px 9px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+#saveStatus {
+  color: #fff;
+  font: 14px var(--font);
+  padding: 5px;
+}
+
+#pages { padding: 22px 10px; }
+
+.page {
+  width: 210mm;
+  height: 297mm;
+  margin: 0 auto 24px;
+  padding: 23mm 21mm 19mm;
+  background: var(--paper);
+  position: relative;
+  box-shadow: 0 4px 18px #0002;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  page-break-after: always;
+  break-after: page;
+}
+
+.frame {
+  position: absolute;
+  inset: 12mm;
+  border: 1px solid #222;
+  pointer-events: none;
+}
+
+.frame::before {
+  content: "";
+  position: absolute;
+  inset: 2mm;
+  border: 1px solid #777;
+}
+
+.corner {
+  position: absolute;
+  z-index: 2;
+  color: #222;
+  font: 22px var(--font);
+  pointer-events: none;
+}
+
+.tl { top: 8mm; right: 10mm; }
+.tr { top: 8mm; left: 10mm; }
+.bl { bottom: 8mm; right: 10mm; }
+.br { bottom: 8mm; left: 10mm; }
+
+.decor {
+  position: absolute;
+  z-index: 2;
+  pointer-events: none;
+  color: #222;
+  font-family: Georgia, serif;
+  font-size: 20px;
+  direction: ltr;
+}
+
+.top-stars, .bottom-stars {
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  padding: 0 5mm;
+  white-space: nowrap;
+}
+
+.top-stars { top: 10mm; }
+.bottom-stars { bottom: 8mm; }
+
+.side-decoration {
+  position: absolute;
+  top: 35%;
+  color: #222;
+  font-size: 25px;
+  line-height: 1.7;
+  pointer-events: none;
+}
+
+.side-right { right: 9mm; }
+.side-left { left: 9mm; }
+
+.page-title {
+  text-align: center;
+  font: 700 25px var(--font);
+  color: #222;
+  margin: 0 0 7mm;
+  padding: 0 0 4mm;
+  border-bottom: 1px solid #aaa;
+  flex-shrink: 0;
+}
+
+.writing {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  outline: none;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  color: var(--ink);
+  font: 22px/1.9 var(--font);
+  text-align: right;
+  padding: 2mm;
+  caret-color: #555;
+  background: transparent;
+}
+
+.writing:focus, .footnotes:focus {
+  background: #fff;
+}
+
+.page-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.page-content > .writing {
+  flex: 1;
+  min-height: 0;
+}
+
+.footnotes {
+  width: 100%;
+  height: 35mm;
+  flex: 0 0 35mm;
+  margin-top: 5mm;
+  border-top: 1px solid #333;
+  outline: none;
+  padding: 4mm 3mm 2mm;
+  font: 15px/1.8 var(--font);
+  color: var(--ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  overflow: auto;
+  position: relative;
+}
+
+.footnotes::before {
+  content: "التهميش";
+  display: block;
+  width: fit-content;
+  background: white;
+  padding: 0 3mm;
+  margin-top: -8mm;
+  margin-bottom: 3mm;
+  font: 16px var(--font);
+  color: #222;
+}
+
+.page-number {
+  position: absolute;
+  bottom: 13mm;
+  left: 0;
+  right: 0;
+  text-align: center;
+  font: 14px var(--font);
+  color: #333;
+  pointer-events: none;
+  z-index: 3;
+}
+
+.book-art {
+  height: 48mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 2px;
+  margin: 2mm auto 5mm;
+  position: relative;
+}
+
+.book {
+  height: 9mm;
+  border: 1.5px solid #222;
+  border-radius: 2px 5px 5px 2px;
+  position: relative;
+  background: white;
+}
+
+.book::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 7px;
+  border-right: 1px solid #222;
+}
+
+.book.one { width: 60mm; transform: rotate(-4deg); }
+.book.two { width: 69mm; transform: rotate(3deg); }
+.book.three { width: 55mm; transform: rotate(-2deg); }
+
+.cover {
+  padding: 25mm 25mm 20mm;
+  text-align: center;
+}
+
+.cover .university {
+  font: 19px/2.1 var(--font);
+}
+
+.cover-heading {
+  font: 700 30px var(--font);
+  margin: 5mm 0;
+}
+
+.cover .cover-title {
+  border-top: 1px solid #222;
+  border-bottom: 1px solid #222;
+  padding: 7mm 4mm;
+  margin: 5mm 0 8mm;
+}
+
+.cover .cover-title label {
+  display: block;
+  font: 20px var(--font);
+  margin-bottom: 3mm;
+}
+
+.cover .cover-title .writing {
+  min-height: 30mm;
+  max-height: 45mm;
+  flex: none;
+  text-align: center;
+  font-size: 26px;
+  font-weight: bold;
+}
+
+.cover .details {
+  text-align: right;
+  font: 19px/2.2 var(--font);
+  margin: 5mm 3mm;
+}
+
+.cover .details span[contenteditable],
+.cover .university span[contenteditable],
+.cover .year span[contenteditable] {
+  outline: none;
+}
+
+.cover .details span[contenteditable] {
+  display: inline-block;
+  min-width: 30mm;
+}
+
+.cover .year {
+  margin-top: auto;
+  font: 18px var(--font);
+}
+
+.cover .page-title,
+.cover .page-number,
+.cover .footnotes {
+  display: none;
+}
+
+.quill-art {
+  height: 35mm;
+  margin: 2mm auto 0;
+  display: flex;
+  justify-content: center;
+  align-items: end;
+  gap: 5mm;
+  color: #222;
+}
+
+.quill { font-size: 52px; transform: rotate(-25deg); }
+.inkwell { font-size: 38px; }
+.open-book { font-size: 44px; }
+
+@media (max-width: 800px) {
+  #pages { padding: 10px 4px; }
+
+  .page {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    aspect-ratio: 210 / 297;
+    padding: 16mm 14mm 15mm;
+  }
+
+  .writing { font-size: 17px; }
+  .page-title { font-size: 20px; }
+
+  .footnotes {
+    height: 32mm;
+    flex-basis: 32mm;
+    font-size: 12px;
+  }
+
+  .cover { padding-top: 18mm; }
+  .cover .university { font-size: 14px; }
+  .cover-heading { font-size: 24px; }
+  .cover .details { font-size: 14px; }
+  .cover .cover-title .writing { font-size: 20px; }
+  .decor { font-size: 15px; }
+}
+
+@media print {
+  @page { size: A4; margin: 0; }
+
+  body { background: white; }
+  .toolbar { display: none !important; }
+  #pages { padding: 0; }
+
+  .page {
+    width: 210mm;
+    height: 297mm;
+    margin: 0;
+    box-shadow: none;
+    break-after: page;
+    page-break-after: always;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .writing, .footnotes { overflow: hidden; }
+}
+</style>
+</head>
+
+<body>
+
+<div class="toolbar">
+  <button type="button" onclick="addPage()">＋ إضافة صفحة فارغة</button>
+  <button type="button" onclick="deletePage()">− حذف آخر صفحة مضافة</button>
+
+  <label class="color-control">
+    لون النص المحدد
+    <select id="inkColor" aria-label="اختيار لون النص">
+      <option value="#292929">الأسود</option>
+      <option value="#1565c0">الأزرق</option>
+      <option value="#16803c">الأخضر</option>
+      <option value="#d32f2f">الأحمر</option>
+    </select>
+  </label>
+
+  <label class="color-control">
+    حجم النص
+    <select id="fontSize" aria-label="حجم النص">
+      <option value="18px">18</option>
+      <option value="20px">20</option>
+      <option value="22px" selected>22</option>
+      <option value="24px">24</option>
+      <option value="26px">26</option>
+      <option value="28px">28</option>
+      <option value="30px">30</option>
+      <option value="32px">32</option>
+    </select>
+  </label>
+
+  <button type="button" onclick="saveNow()">حفظ الآن</button>
+  <button type="button" onclick="exportBackup()">تنزيل نسخة احتياطية</button>
+  <button type="button" onclick="document.getElementById('backupFile').click()">استرجاع نسخة</button>
+  <input id="backupFile" type="file" accept=".json,application/json" hidden>
+
+  <button type="button" onclick="window.print()">طباعة / PDF</button>
+  <button type="button" onclick="downloadText()">تنزيل النص</button>
+
+  <span id="saveStatus" role="status">جاري تحميل الدفتر...</span>
+</div>
+
+<div id="pages"></div>
+
+<script>
+const container = document.getElementById("pages");
+const colorPicker = document.getElementById("inkColor");
+const sizePicker = document.getElementById("fontSize");
+const saveStatus = document.getElementById("saveStatus");
+const backupFile = document.getElementById("backupFile");
+
+const STORAGE_KEY = "university_research_notebook_v1";
+
+let savedRange = null;
+let savedEditor = null;
+let saveTimer = null;
+
+/* الزخرفة */
+function decorations() {
+  return `
+    <div class="frame"></div>
+    <span class="corner tl">❧</span>
+    <span class="corner tr">❧</span>
+    <span class="corner bl">❧</span>
+    <span class="corner br">❧</span>
+    <div class="decor top-stars">— ☆ ★ ☆ —</div>
+    <div class="decor bottom-stars">— ☆ ★ ☆ —</div>
+    <div class="side-decoration side-right">﹏<br>∿<br>∿<br>﹏</div>
+    <div class="side-decoration side-left">﹏<br>∿<br>∿<br>﹏</div>
+  `;
+}
+
+/* إنشاء صفحة */
+function createPage(type = "", isCover = false) {
+  const page = document.createElement("section");
+  page.className = "page" + (isCover ? " cover" : "");
+  page.dataset.type = type || (isCover ? "الغلاف" : "صفحة فارغة");
+
+  if (isCover) {
+    page.innerHTML = `
+      ${decorations()}
+
+      <div class="university">
+        الجمهورية الجزائرية الديمقراطية الشعبية<br>
+        وزارة التعليم العالي والبحث العلمي<br>
+        الجامعة:
+        <span contenteditable="true" spellcheck="false">....................</span><br>
+        الكلية:
+        <span contenteditable="true" spellcheck="false">....................</span><br>
+        القسم:
+        <span contenteditable="true" spellcheck="false">....................</span>
+      </div>
+
+      <div class="book-art" aria-label="كتب مرسومة">
+        <div class="book one"></div>
+        <div class="book two"></div>
+        <div class="book three"></div>
+      </div>
+
+      <div class="cover-heading">دفتر البحث الجامعي</div>
+
+      <div class="cover-title">
+        <label>عنوان البحث</label>
+        <div class="writing" contenteditable="true" spellcheck="false"></div>
+      </div>
+
+      <div class="details">
+        <div>إعداد الطالب(ة):
+          <span contenteditable="true" spellcheck="false">....................</span>
+        </div>
+        <div>إشراف الأستاذ(ة):
+          <span contenteditable="true" spellcheck="false">....................</span>
+        </div>
+        <div>التخصص:
+          <span contenteditable="true" spellcheck="false">....................</span>
+        </div>
+      </div>
+
+      <div class="quill-art">
+        <span class="open-book">♧</span>
+        <span class="quill">✒</span>
+        <span class="inkwell">♜</span>
+      </div>
+
+      <div class="year">
+        السنة الجامعية:
+        <span contenteditable="true">........ / ........</span>
+      </div>
+    `;
+  } else {
+    page.innerHTML = `
+      ${decorations()}
+      ${type ? '<h2 class="page-title"></h2>' : ''}
+
+      <div class="page-content">
+        <div class="writing" contenteditable="true" spellcheck="false"></div>
+        ${type.startsWith("المبحث")
+          ? '<div class="footnotes" contenteditable="true" spellcheck="false"></div>'
+          : ''}
+      </div>
+
+      <div class="page-number"></div>
+    `;
+
+    const heading = page.querySelector(".page-title");
+    if (heading) heading.textContent = type;
+  }
+
+  return page;
+}
+
+function renumberPages() {
+  container.querySelectorAll(".page").forEach((page, index) => {
+    const number = page.querySelector(".page-number");
+    if (number) number.textContent = index + 1;
+  });
+}
+
+/* الحفظ التلقائي */
+function saveNow() {
+  clearTimeout(saveTimer);
+
+  try {
+    const data = {
+      version: 1,
+      savedAt: new Date().toISOString(),
+      html: container.innerHTML
+    };
+
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    saveStatus.textContent = "تم الحفظ ✓";
+    return true;
+  } catch (error) {
+    saveStatus.textContent = "تعذّر الحفظ؛ نزّلي نسخة احتياطية";
+    return false;
+  }
+}
+
+function scheduleSave() {
+  saveStatus.textContent = "جاري الحفظ...";
+
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveNow, 350);
+}
+
+/* تحميل الدفتر المحفوظ أو إنشاء دفتر جديد */
+function loadNotebook() {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+
+    if (stored) {
+      const data = JSON.parse(stored);
+
+      if (data && data.version === 1 && typeof data.html === "string") {
+        container.innerHTML = data.html;
+        renumberPages();
+        saveStatus.textContent = "تم استرجاع الدفتر ✓";
+        return;
+      }
+    }
+  } catch (error) {
+    saveStatus.textContent = "تعذّر قراءة الحفظ السابق";
+  }
+
+  container.replaceChildren();
+  container.appendChild(createPage("الغلاف", true));
+  container.appendChild(createPage("المقدمة"));
+  container.appendChild(createPage("المبحث الأول"));
+  container.appendChild(createPage("المبحث الثاني"));
+  container.appendChild(createPage("المبحث الثالث"));
+  container.appendChild(createPage("الخاتمة"));
+
+  renumberPages();
+  saveNow();
+}
+
+/* تحديد النص وتنسيقه دون تغيير بقية الصفحة */
+function getEditor(node) {
+  if (!node) return null;
+
+  const element = node.nodeType === Node.ELEMENT_NODE
+    ? node
+    : node.parentElement;
+
+  return element?.closest("[contenteditable='true']") || null;
+}
+
+document.addEventListener("selectionchange", () => {
+  const selection = window.getSelection();
+
+  if (!selection || !selection.rangeCount) return;
+
+  const range = selection.getRangeAt(0);
+  const editor = getEditor(range.commonAncestorContainer);
+
+  if (!editor || !container.contains(editor)) return;
+
+  savedRange = range.cloneRange();
+  savedEditor = editor;
+});
+
+function restoreSelection() {
+  if (!savedRange || !savedEditor || !savedEditor.isConnected) {
+    return false;
+  }
+
+  savedEditor.focus({ preventScroll: true });
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(savedRange);
+
+  return true;
+}
+
+function applyFormatting(property, value) {
+  if (!restoreSelection()) {
+    alert("حددي كلمة أو نصًا داخل الصفحة أولًا.");
+    return;
+  }
+
+  const selection = window.getSelection();
+
+  if (!selection || !selection.rangeCount) return;
+
+  const range = selection.getRangeAt(0);
+
+  if (range.collapsed) {
+    alert("حددي الكلمة أو النص الذي تريدين تنسيقه أولًا.");
+    return;
+  }
+
+  const editor = getEditor(range.commonAncestorContainer);
+
+  if (!editor || !container.contains(editor)) return;
+
+  try {
+    const span = document.createElement("span");
+    span.style.setProperty(property, value);
+    span.appendChild(range.extractContents());
+    range.insertNode(span);
+
+    const newRange = document.createRange();
+    newRange.selectNodeContents(span);
+
+    selection.removeAllRanges();
+    selection.addRange(newRange);
+
+    savedRange = newRange.cloneRange();
+    savedEditor = editor;
+
+    scheduleSave();
+  } catch (error) {
+    alert("عاودي حددي النص وحاولي مرة أخرى.");
+  }
+}
+
+colorPicker.addEventListener("change", () => {
+  applyFormatting("color", colorPicker.value);
+});
+
+sizePicker.addEventListener("change", () => {
+  applyFormatting("font-size", sizePicker.value);
+});
+
+/* أي كتابة أو تعديل يتسجل تلقائيًا */
+container.addEventListener("input", event => {
+  if (getEditor(event.target)) {
+    scheduleSave();
+  }
+});
+
+container.addEventListener("blur", event => {
+  if (getEditor(event.target)) {
+    saveNow();
+  }
+}, true);
+
+/* إضافة صفحة فارغة قبل الخاتمة */
+function addPage() {
+  const page = createPage();
+
+  const conclusion = [...container.querySelectorAll(".page")]
+    .find(p => p.dataset.type === "الخاتمة");
+
+  if (conclusion) {
+    container.insertBefore(page, conclusion);
+  } else {
+    container.appendChild(page);
+  }
+
+  renumberPages();
+  saveNow();
+
+  const editor = page.querySelector(".writing");
+  editor.focus();
+  savedEditor = editor;
+  savedRange = null;
+}
+
+/* حذف آخر صفحة إضافية */
+function deletePage() {
+  const candidates = [...container.querySelectorAll(".page")]
+    .filter(page => page.dataset.type === "صفحة فارغة");
+
+  if (!candidates.length) {
+    alert("ما كاين حتى صفحة إضافية للحذف.");
+    return;
+  }
+
+  if (!confirm("تحبي تحذفي آخر صفحة فارغة؟")) return;
+
+  candidates[candidates.length - 1].remove();
+
+  savedRange = null;
+  savedEditor = null;
+
+  renumberPages();
+  saveNow();
+}
+
+/* تنزيل نسخة احتياطية تشمل النصوص والتنسيقات والصفحات */
+function exportBackup() {
+  saveNow();
+
+  const data = {
+    version: 1,
+    savedAt: new Date().toISOString(),
+    html: container.innerHTML
+  };
+
+  const blob = new Blob(
+    [JSON.stringify(data, null, 2)],
+    { type: "application/json;charset=utf-8" }
+  );
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "نسخة-احتياطية-دفتر-البحث.json";
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* استرجاع نسخة احتياطية سابقة */
+backupFile.addEventListener("change", async () => {
+  const file = backupFile.files[0];
+  if (!file) return;
+
+  try {
+    const text = await file.text();
+    const data = JSON.parse(text);
+
+    if (
+      !data ||
+      data.version !== 1 ||
+      typeof data.html !== "string" ||
+      !data.html.includes('class="page')
+    ) {
+      throw new Error("Invalid backup");
+    }
+
+    if (!confirm("استرجاع النسخة سيعوّض محتوى الدفتر الحالي. تكملي؟")) {
+      backupFile.value = "";
+      return;
+    }
+
+    container.innerHTML = data.html;
+    renumberPages();
+
+    if (!saveNow()) {
+      alert("تم تحميل النسخة مؤقتًا، لكن تعذّر حفظها في المتصفح. نزّلي نسخة احتياطية.");
+    } else {
+      alert("تم استرجاع النسخة وحفظها بنجاح.");
+    }
+  } catch (error) {
+    alert("الملف غير صالح أو تعذّر قراءته.");
+  }
+
+  backupFile.value = "";
+});
+
+/* تنزيل النص بصيغة TXT */
+function downloadText() {
+  let result = "";
+
+  container.querySelectorAll(".page").forEach((page, index) => {
+    result += "\n\n===== " + page.dataset.type +
+      " — الصفحة " + (index + 1) + " =====\n";
+
+    page.querySelectorAll(".writing, .footnotes").forEach(el => {
+      result += el.innerText.trim() + "\n";
+    });
+
+    if (page.classList.contains("cover")) {
+      result += page.querySelector(".university").innerText + "\n";
+      result += page.querySelector(".details").innerText + "\n";
+      result += page.querySelector(".year").innerText + "\n";
+    }
+  });
+
+  const blob = new Blob(["\uFEFF" + result], {
+    type: "text/plain;charset=utf-8"
+  });
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = "البحث-الجامعي.txt";
+  link.click();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/* حفظ أخير قبل مغادرة الصفحة */
+window.addEventListener("pagehide", saveNow);
+
+/* تشغيل الدفتر */
+loadNotebook();
+</script>
+
+</body>
+</html>
